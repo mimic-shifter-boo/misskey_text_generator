@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MFM 文字装飾ジェネレーター</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0f14;
+      --surface: #161920;
+      --surface2: #1e2130;
+      --border: #2a2f45;
+      --accent: #86b300;
+      --accent2: #53b6ec;
+      --text: #d4d9e8;
+      --muted: #6b7394;
+      --danger: #e96854;
+      --radius: 10px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Sans JP', sans-serif;
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+    }
+    .logo { display: flex; align-items: baseline; gap: 10px; }
+    .logo-mfm { font-family: 'BIZ UDGothic', sans-serif; font-size: 22px; font-weight: 700; color: var(--accent); letter-spacing: 2px; }
+    .logo-sub { font-size: 13px; color: var(--muted); }
+    .header-desc { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .header-ref { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .header-ref a { color: var(--accent2); text-decoration: none; }
+    .header-ref a:hover { text-decoration: underline; }
+
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 768px) {
+      main { grid-template-columns: 1fr; padding: 16px; }
+    }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    textarea {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'BIZ UDGothic', monospace;
+      font-size: 14px;
+      padding: 12px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.7;
+      min-height: 100px;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: var(--muted); }
+
+    .decorations { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+
+    .group {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+    }
+    .group-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .btns { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+    button {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    button:hover { background: var(--border); border-color: var(--accent); color: var(--accent); }
+    button:active { transform: scale(0.96); }
+
+    .btn-copy {
+      width: 100%;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      background: var(--accent2);
+      border-color: var(--accent2);
+      color: #000;
+      border-radius: var(--radius);
+      margin-bottom: 8px;
+    }
+    .btn-copy:hover { background: #6dc8f5; color: #000; border-color: #6dc8f5; }
+    .btn-copy.copied { background: var(--accent); border-color: var(--accent); color: #000; }
+    .btn-reset {
+      width: 100%;
+      padding: 8px;
+      font-size: 12px;
+      border-color: var(--danger);
+      color: var(--danger);
+      border-radius: var(--radius);
+    }
+    .btn-reset:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+    .color-wrap { position: relative; }
+    .color-popup {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px;
+      z-index: 100;
+      min-width: 210px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+    .color-popup.open { display: flex; flex-direction: column; gap: 8px; }
+    .color-row { display: flex; align-items: center; gap: 8px; }
+    input[type=color] { width: 36px; height: 28px; border: none; background: none; cursor: pointer; padding: 0; }
+    input[type=text].color-text {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: monospace;
+      font-size: 12px;
+      padding: 4px 8px;
+      outline: none;
+    }
+    input[type=text].color-text:focus { border-color: var(--accent); }
+    .btn-apply {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #000;
+      font-weight: 700;
+      padding: 5px 12px;
+    }
+    .btn-apply:hover { background: #9dcf00; color: #000; border-color: #9dcf00; }
+    input[type=range] { flex: 1; accent-color: var(--accent); }
+    .deg-label { font-size: 12px; color: var(--muted); min-width: 38px; text-align: right; }
+
+    select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 12px;
+      padding: 5px 8px;
+      cursor: pointer;
+      outline: none;
+    }
+    select:focus { border-color: var(--accent); }
+
+    /* プレビューエリア */
+    .preview-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      min-height: 140px;
+      margin-bottom: 8px;
+      word-break: break-all;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .preview-note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+    .preview-empty { color: var(--muted); font-size: 13px; }
+    #preview-content { font-size: 16px; line-height: 1.8; text-align: center; }
+
+    .output-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-bottom: 14px;
+      word-break: break-all;
+      white-space: pre-wrap;
+      font-family: 'BIZ UDGothic', monospace;
+      font-size: 13px;
+      color: var(--accent2);
+      min-height: 60px;
+      user-select: all;
+      cursor: text;
+    }
+
+    /* ── MFM CSS再現アニメーション ── */
+    @keyframes mfm-jelly {
+      0%,100% { transform: scale(1); }
+      25% { transform: scale(1.2, 0.85); }
+      50% { transform: scale(0.9, 1.15); }
+      75% { transform: scale(1.05, 0.95); }
+    }
+    @keyframes mfm-tada {
+      0% { transform: scale(1); }
+      10%,20% { transform: scale(0.9) rotate(-3deg); }
+      30%,50%,70%,90% { transform: scale(1.1) rotate(3deg); }
+      40%,60%,80% { transform: scale(1.1) rotate(-3deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
+    @keyframes mfm-jump {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-24px); }
+    }
+    @keyframes mfm-bounce {
+      0%,100% { transform: translateY(0); animation-timing-function: cubic-bezier(0,0,0.2,1); }
+      50% { transform: translateY(-20px); animation-timing-function: cubic-bezier(0.8,0,1,1); }
+    }
+    @keyframes mfm-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes mfm-shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-6px) rotate(-2deg); }
+      40% { transform: translateX(6px) rotate(2deg); }
+      60% { transform: translateX(-4px) rotate(-1deg); }
+      80% { transform: translateX(4px) rotate(1deg); }
+    }
+    @keyframes mfm-twitch {
+      0%,100% { transform: translate(0,0); }
+      20% { transform: translate(-4px, 2px); }
+      40% { transform: translate(4px, -2px); }
+      60% { transform: translate(-2px, 4px); }
+      80% { transform: translate(2px, -4px); }
+    }
+    @keyframes mfm-rainbow {
+      0% { filter: hue-rotate(0deg); }
+      100% { filter: hue-rotate(360deg); }
+    }
+    @keyframes mfm-sparkle {
+      0%,100% { opacity: 1; filter: brightness(1); }
+      50% { opacity: 0.6; filter: brightness(2) saturate(2); }
+    }
+
+    .mfm-bold { font-weight: 700; }
+    .mfm-small { font-size: 0.7em; opacity: 0.7; }
+    .mfm-center { text-align: center; display: block; }
+    .mfm-quote { border-left: 3px solid var(--muted); padding-left: 10px; opacity: 0.8; }
+    .mfm-blur { filter: blur(4px); transition: filter 0.2s; cursor: pointer; }
+    .mfm-blur:hover { filter: blur(0); }
+    .mfm-x2 { font-size: 2em; }
+    .mfm-x3 { font-size: 3em; }
+    .mfm-x4 { font-size: 4em; }
+    .mfm-serif { font-family: serif; }
+    .mfm-monospace { font-family: monospace; }
+    .mfm-cursive { font-family: cursive; }
+    .mfm-fantasy { font-family: fantasy; }
+    .mfm-flip-h { display: inline-block; transform: scaleX(-1); }
+    .mfm-flip-v { display: inline-block; transform: scaleY(-1); }
+    .mfm-flip-hv { display: inline-block; transform: scale(-1,-1); }
+    .mfm-jelly { display: inline-block; animation: mfm-jelly 0.8s infinite; }
+    .mfm-tada { display: inline-block; animation: mfm-tada 1s infinite; }
+    .mfm-jump { display: inline-block; animation: mfm-jump 0.7s infinite; }
+    .mfm-bounce { display: inline-block; animation: mfm-bounce 0.7s infinite; }
+    .mfm-spin { display: inline-block; animation: mfm-spin 1.5s linear infinite; }
+    .mfm-shake { display: inline-block; animation: mfm-shake 0.4s infinite; }
+    .mfm-twitch { display: inline-block; animation: mfm-twitch 0.3s infinite; }
+    .mfm-rainbow { display: inline-block; animation: mfm-rainbow 1s linear infinite; color: #f00; }
+    .mfm-sparkle { display: inline-block; animation: mfm-sparkle 0.8s infinite; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-mfm">MFM</span>
+    <span class="logo-sub">文字装飾ジェネレーター</span>
+  </div>
+  <div class="header-desc">テキストを選択してボタンを押すと選択部分に装飾が適用されます。選択なしの場合はテキスト全体に適用されます</div>
+  <div class="header-ref">文字装飾については Misskey.io の <a href="https://misskey.io/@tonba/pages/mfm-study" target="_blank">@tonba さんのページ</a> を参照しています</div>
+</header>
+
+<main>
+  <!-- 左：エディタ -->
+  <div>
+    <div class="label">MFMテキスト編集</div>
+    <textarea id="editor" placeholder="ここにテキストを入力…&#10;テキストを選択してからボタンを押すと装飾できます"></textarea>
+
+    <div class="decorations">
+
+      <div class="group">
+        <div class="group-label">基本</div>
+        <div class="btns">
+          <button onclick="wrap('**','**')">太字</button>
+          <button onclick="wrap('<small>','</small>')">小さく</button>
+          <button onclick="wrap('<center>','</center>')">中央寄せ</button>
+          <button onclick="wrapLine('> ')">引用</button>
+          <button onclick="wrapMfm('blur')">ぼかし</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-label">サイズ</div>
+        <div class="btns">
+          <button onclick="wrapMfm('x2')">x2</button>
+          <button onclick="wrapMfm('x3')">x3</button>
+          <button onclick="wrapMfm('x4')">x4</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-label">フォント</div>
+        <div class="btns">
+          <select id="font-select" onchange="applyFont(this.value)">
+            <option value="">-- フォントを選択 --</option>
+            <option value="font.serif">serif</option>
+            <option value="font.monospace">monospace</option>
+            <option value="font.cursive">cursive</option>
+            <option value="font.fantasy">fantasy</option>
+          </select>
+          <button onclick="removeFont()">フォントを解除</button>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-label">変形</div>
+        <div class="btns">
+          <button onclick="wrapMfm('flip')">反転(横)</button>
+          <button onclick="wrapMfm('flip.v')">反転(縦)</button>
+          <button onclick="wrapMfm('flip.h,v')">反転(両)</button>
+          <div class="color-wrap">
+            <button onclick="togglePopup('rotate-popup')">回転</button>
+            <div class="color-popup" id="rotate-popup">
+              <div class="color-row">
+                <input type="range" id="rotate-range" min="-180" max="180" value="30"
+                  oninput="document.getElementById('rotate-deg').textContent=this.value+'°'">
+                <span class="deg-label" id="rotate-deg">30°</span>
+              </div>
+              <button class="btn-apply" onclick="applyRotate()">適用</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-label">色</div>
+        <div class="btns">
+          <div class="color-wrap">
+            <button onclick="togglePopup('fg-popup')">文字色</button>
+            <div class="color-popup" id="fg-popup">
+              <div class="color-row">
+                <input type="color" id="fg-color" value="#ff0000"
+                  oninput="document.getElementById('fg-text').value=this.value.replace('#','')">
+                <input type="text" class="color-text" id="fg-text" value="ff0000" placeholder="例: f00"
+                  oninput="syncColor('fg-color','fg-text')">
+              </div>
+              <button class="btn-apply" onclick="applyColor('fg')">適用</button>
+            </div>
+          </div>
+          <div class="color-wrap">
+            <button onclick="togglePopup('bg-popup')">背景色</button>
+            <div class="color-popup" id="bg-popup">
+              <div class="color-row">
+                <input type="color" id="bg-color" value="#ffff00"
+                  oninput="document.getElementById('bg-text').value=this.value.replace('#','')">
+                <input type="text" class="color-text" id="bg-text" value="ffff00" placeholder="例: ff0"
+                  oninput="syncColor('bg-color','bg-text')">
+              </div>
+              <button class="btn-apply" onclick="applyColor('bg')">適用</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-label">アニメーション</div>
+        <div class="btns">
+          <button onclick="wrapMfm('jelly')">びよんびよん</button>
+          <button onclick="wrapMfm('tada')">じゃーん</button>
+          <button onclick="wrapMfm('jump')">ジャンプ</button>
+          <button onclick="wrapMfm('bounce')">バウンド</button>
+          <button onclick="wrapMfm('spin')">回転(spin)</button>
+          <button onclick="wrapMfm('shake')">ぶるぶる</button>
+          <button onclick="wrapMfm('twitch')">ブレ</button>
+          <button onclick="wrapMfm('rainbow')">🌈 レインボー</button>
+          <button onclick="wrapMfm('sparkle')">✨ キラキラ</button>
+        </div>
+      </div>
+
+    </div>
+
+    <button class="btn-reset" onclick="resetEditor()">🗑️ リセット</button>
+  </div>
+
+  <!-- 右：プレビュー・出力 -->
+  <div>
+    <div class="label">プレビュー</div>
+    <div class="preview-box">
+      <div id="preview-content"><span class="preview-empty">ここにプレビューが表示されます</span></div>
+    </div>
+    <div class="preview-note">※ CSSでの雰囲気再現のため、ズレなどが発生する場合があります</div>
+
+    <div class="label">生成されたMFM記法（クリックで全選択）</div>
+    <div class="output-box" id="output" onclick="selectOutput()">（未生成）</div>
+
+    <button class="btn-copy" id="copy-btn" onclick="copyText()">📋 クリップボードにコピー</button>
+  </div>
+</main>
+
+<script>
+  const editor = document.getElementById('editor')
+  const previewContent = document.getElementById('preview-content')
+  const output = document.getElementById('output')
+  const copyBtn = document.getElementById('copy-btn')
+
+  editor.addEventListener('input', updatePreview)
+
+  // MFM記法をHTMLに変換してプレビュー
+  function parseMfm(text) {
+    if (!text) return '<span class="preview-empty">ここにプレビューが表示されます</span>'
+
+    let html = escapeHtml(text)
+
+    // $[tag ...] の再帰的な変換
+    const tagMap = {
+      'x2': 'mfm-x2', 'x3': 'mfm-x3', 'x4': 'mfm-x4',
+      'jelly': 'mfm-jelly', 'tada': 'mfm-tada', 'jump': 'mfm-jump',
+      'bounce': 'mfm-bounce', 'spin': 'mfm-spin', 'shake': 'mfm-shake',
+      'twitch': 'mfm-twitch', 'rainbow': 'mfm-rainbow', 'sparkle': 'mfm-sparkle',
+      'blur': 'mfm-blur',
+      'font.serif': 'mfm-serif', 'font.monospace': 'mfm-monospace',
+      'font.cursive': 'mfm-cursive', 'font.fantasy': 'mfm-fantasy',
+      'flip': 'mfm-flip-h', 'flip.v': 'mfm-flip-v', 'flip.h,v': 'mfm-flip-hv',
+    }
+
+    // $[tag content] を変換（ネスト対応のため複数回適用）
+    for (let i = 0; i < 5; i++) {
+      html = html.replace(/\$\[([^\s\]]+)\s([\s\S]*?)\]/g, (match, tag, content) => {
+        // 色系
+        const fgMatch = tag.match(/^fg\.color=([0-9a-fA-F]{3,6})$/)
+        if (fgMatch) return `<span style="color:#${fgMatch[1]}">${content}</span>`
+        const bgMatch = tag.match(/^bg\.color=([0-9a-fA-F]{3,6})$/)
+        if (bgMatch) return `<span style="background:#${bgMatch[1]};padding:0 2px">${content}</span>`
+        // 回転
+        const rotMatch = tag.match(/^rotate\.deg=(-?\d+)$/)
+        if (rotMatch) return `<span style="display:inline-block;transform:rotate(${rotMatch[1]}deg)">${content}</span>`
+        // その他タグ
+        const cls = tagMap[tag]
+        if (cls) return `<span class="${cls}">${content}</span>`
+        return match
+      })
+    }
+
+    // **bold**
+    html = html.replace(/\*\*([\s\S]*?)\*\*/g, '<span class="mfm-bold">$1</span>')
+    // <small>
+    html = html.replace(/&lt;small&gt;([\s\S]*?)&lt;\/small&gt;/g, '<span class="mfm-small">$1</span>')
+    // <center>
+    html = html.replace(/&lt;center&gt;([\s\S]*?)&lt;\/center&gt;/g, '<span class="mfm-center">$1</span>')
+    // > 引用
+    html = html.replace(/^&gt; (.+)$/gm, '<span class="mfm-quote">$1</span>')
+    // 改行
+    html = html.replace(/\n/g, '<br>')
+
+    return html
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+  }
+
+  function updatePreview() {
+    const val = editor.value
+    previewContent.innerHTML = parseMfm(val)
+    output.textContent = val || '（未生成）'
+  }
+
+  function insertAt(before, after) {
+    const start = editor.selectionStart
+    const end = editor.selectionEnd
+    const hasSelection = start !== end
+    if (hasSelection) {
+      const selected = editor.value.slice(start, end)
+      const inserted = before + selected + after
+      editor.value = editor.value.slice(0, start) + inserted + editor.value.slice(end)
+      editor.focus()
+      editor.setSelectionRange(start + inserted.length, start + inserted.length)
+    } else {
+      const all = editor.value
+      if (!all) return
+      editor.value = before + all + after
+      editor.focus()
+      editor.setSelectionRange(editor.value.length, editor.value.length)
+    }
+    updatePreview()
+  }
+
+  function wrap(before, after) { insertAt(before, after) }
+  function wrapMfm(tag) { insertAt(`$[${tag} `, `]`) }
+  function applyFont(tag) {
+    const sel = document.getElementById('font-select')
+    if (!tag) return
+    // テキスト全体から既存のfontタグを除去して新しいfontタグを適用
+    let val = editor.value
+    // $[font.xxx ...] を再帰的に剥がす
+    let prev = null
+    while (prev !== val) {
+      prev = val
+      val = val.replace(/\$\[font\.[^\s\]]+\s([\s\S]*)\]/, '$1')
+    }
+    editor.value = `$[${tag} ${val}]`
+    sel.value = ''
+    editor.focus()
+    updatePreview()
+  }
+
+  function removeFont() {
+    let val = editor.value
+    let prev = null
+    while (prev !== val) {
+      prev = val
+      val = val.replace(/\$\[font\.[^\s\]]+\s([\s\S]*)\]/, '$1')
+    }
+    editor.value = val
+    editor.focus()
+    updatePreview()
+  }
+  function wrapLine(prefix) {
+    const start = editor.selectionStart
+    const end = editor.selectionEnd
+    const hasSelection = start !== end
+    const target = hasSelection ? editor.value.slice(start, end) : editor.value
+    if (!target) return
+    const inserted = prefix + target
+    if (hasSelection) {
+      editor.value = editor.value.slice(0, start) + inserted + editor.value.slice(end)
+      editor.focus()
+      editor.setSelectionRange(start + inserted.length, start + inserted.length)
+    } else {
+      editor.value = inserted
+      editor.focus()
+      editor.setSelectionRange(editor.value.length, editor.value.length)
+    }
+    updatePreview()
+  }
+
+  function togglePopup(id) {
+    document.querySelectorAll('.color-popup').forEach(p => {
+      if (p.id !== id) p.classList.remove('open')
+    })
+    document.getElementById(id).classList.toggle('open')
+  }
+
+  function syncColor(colorId, textId) {
+    const val = document.getElementById(textId).value.replace('#', '')
+    if (val.length === 3 || val.length === 6) {
+      try { document.getElementById(colorId).value = '#' + val } catch(e) {}
+    }
+  }
+
+  function applyColor(prefix) {
+    const color = document.getElementById(prefix + '-text').value.replace('#', '')
+    if (!color) return
+    insertAt(`$[${prefix}.color=${color} `, `]`)
+    document.getElementById(prefix + '-popup').classList.remove('open')
+  }
+
+  function applyRotate() {
+    const deg = document.getElementById('rotate-range').value
+    insertAt(`$[rotate.deg=${deg} `, `]`)
+    document.getElementById('rotate-popup').classList.remove('open')
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.color-wrap')) {
+      document.querySelectorAll('.color-popup').forEach(p => p.classList.remove('open'))
+    }
+  })
+
+  function resetEditor() {
+    editor.value = ''
+    updatePreview()
+    editor.focus()
+  }
+
+  function selectOutput() {
+    const range = document.createRange()
+    range.selectNodeContents(output)
+    const sel = window.getSelection()
+    sel.removeAllRanges()
+    sel.addRange(range)
+  }
+
+  function copyText() {
+    const text = editor.value
+    if (!text) return
+    navigator.clipboard.writeText(text).then(() => {
+      copyBtn.textContent = '✓ コピーしました'
+      copyBtn.classList.add('copied')
+      setTimeout(() => {
+        copyBtn.textContent = '📋 クリップボードにコピー'
+        copyBtn.classList.remove('copied')
+      }, 2000)
+    })
+  }
+</script>
+</body>
+</html>
